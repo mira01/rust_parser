@@ -16,11 +16,10 @@ fn the_letter_a(input: &str) -> Result<(&str, ()), &str>{
 
 fn match_literal(expected: &'static str) -> impl Fn(&str) -> Result<(&str, ()), &str>{
     move |input| {
-        match input.get(0..expected.len()){
-            Some(next) if next == expected =>{
-                Ok((&input[expected.len()..], ()))
-            }
-            _ => Err(input),
+        if let Some(output) = input.strip_prefix(expected){
+            Ok((output, ()))
+        } else {
+            Err(input)
         }
     }
 }
