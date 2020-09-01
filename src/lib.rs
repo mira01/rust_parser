@@ -59,18 +59,19 @@ fn identifier(input: &str) -> Result<(&str, String), &str>{
     Ok((&input.strip_prefix(&matched).unwrap(), matched))
 }
 
-fn pair<P1, P2, R1, R2>(parser1: P1, parser2: P2) -> impl Fn(&str) -> Result<(&str, (R1, R2)), &str>
+fn pair<'a, P1, P2, R1, R2>(parser1: P1, parser2: P2) -> impl Parser<'a, (R1, R2)>
 where
-    P1: Fn(&str) -> Result<(&str, R1), &str>,
-    P2: Fn(&str) -> Result<(&str, R2), &str>,{
-
-    move |input| match parser1(input){
-        Ok((next_input, result1)) =>
-            match parser2(next_input) {
-                Ok((final_input, result2)) => Ok((final_input, (result1, result2))),
-                Err(_err) => Err(input)
-        },
-        Err(err) => Err(err),
+    P1: Parser<'a, R1>,
+    P2: Parser<'a, R2>,
+{
+    move |input|{
+        parser1.parse(input).and_then(|(next_input, result1)|{
+            parser2.parse(next_input)
+                .map(|(last_input, result2)|{
+                   (last_input, (result1, result2))
+                })
+                .map_err(|_err| (input))
+        })
     }
 }
 
@@ -87,6 +88,8 @@ fn map<'a, P, F, A, B>(parser: P, map_fn: F) -> impl Parser<'a, B>
 
 #[cfg(test)]
 mod tests {
+    use super::Parser;
+
     #[test]
     fn it_works() {
         assert_eq!(2 + 2, 4);
@@ -110,11 +113,11 @@ mod tests {
     #[test]
     fn pair_combinator(){
         let tag_opener = super::pair(super::match_literal("<"), super::identifier);
-        assert_eq!(tag_opener("<my-first-element/>"),
+        assert_eq!(tag_opener.parse("<my-first-element/>"),
              Ok(("/>", ((), "my-first-element".to_string())))
         );
-        assert_eq!(tag_opener("oops"), Err("oops"));
-        assert_eq!(tag_opener("<!oops"), Err("<!oops"));
+        assert_eq!(tag_opener.parse("oops"), Err("oops"));
+        assert_eq!(tag_opener.parse("<!oops"), Err("<!oops"));
 
     }
 }
