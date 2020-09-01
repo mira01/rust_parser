@@ -29,8 +29,8 @@ fn the_letter_a(input: &str) -> Result<(&str, ()), &str>{
     }
 }
 
-fn match_literal(expected: &'static str) -> impl Fn(&str) -> Result<(&str, ()), &str>{
-    move |input| {
+fn match_literal<'a>(expected: &'static str) -> impl Parser<'a, ()>{
+    move |input: &'a str| {
         if let Some(output) = input.strip_prefix(expected){
             Ok((output, ()))
         } else {
@@ -39,7 +39,7 @@ fn match_literal(expected: &'static str) -> impl Fn(&str) -> Result<(&str, ()), 
     }
 }
 
-fn identifier(input: &str) -> Result<(&str, String), &str>{
+fn identifier(input: &str) -> ParseResult<String>{
     let mut matched = String::new();
     let mut chars = input.chars();
 
@@ -113,10 +113,10 @@ mod tests {
     #[test]
     fn parse_a(){
         let parse_ahoj = super::match_literal("ahoj");
-        assert_eq!(parse_ahoj("ahoj"), Ok(("", ())));
-        assert_eq!(parse_ahoj("ahoj bobe"), Ok((" bobe", ())));
+        assert_eq!(parse_ahoj.parse("ahoj"), Ok(("", ())));
+        assert_eq!(parse_ahoj.parse("ahoj bobe"), Ok((" bobe", ())));
 
-        assert_eq!(parse_ahoj("čau"), Err("čau"));
+        assert_eq!(parse_ahoj.parse("čau"), Err("čau"));
     }
 
     #[test]
@@ -135,5 +135,13 @@ mod tests {
         assert_eq!(tag_opener.parse("oops"), Err("oops"));
         assert_eq!(tag_opener.parse("<!oops"), Err("<!oops"));
 
+    }
+
+    #[test]
+    fn right_combinator(){
+        let tag_opener = super::right(super::match_literal("<"), super::identifier);
+        assert_eq!(tag_opener.parse("<my-first-element/>"), Ok(("/>", "my-first-element".to_string())));
+        assert_eq!(tag_opener.parse("oops"), Err("oops"));
+        assert_eq!(tag_opener.parse("<!oops"), Err("<!oops"));
     }
 }
