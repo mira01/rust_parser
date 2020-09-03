@@ -139,7 +139,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::Parser;
+    use super::{Parser, match_literal, identifier, pair, right, left, zero_or_more, one_or_more};
 
     #[test]
     fn it_works() {
@@ -147,7 +147,7 @@ mod tests {
     }
     #[test]
     fn parse_a(){
-        let parse_ahoj = super::match_literal("ahoj");
+        let parse_ahoj = match_literal("ahoj");
         assert_eq!(parse_ahoj.parse("ahoj"), Ok(("", ())));
         assert_eq!(parse_ahoj.parse("ahoj bobe"), Ok((" bobe", ())));
 
@@ -156,14 +156,14 @@ mod tests {
 
     #[test]
     fn parse_identifier(){
-        assert_eq!(super::identifier("id-enti-ffier"), Ok(("", "id-enti-ffier".into())) );
-        assert_eq!(super::identifier("r2-d2 and co"), Ok((" and co", "r2-d2".into())) );
-        assert_eq!(super::identifier("-not at all"), Err("-not at all") );
+        assert_eq!(identifier("id-enti-ffier"), Ok(("", "id-enti-ffier".into())) );
+        assert_eq!(identifier("r2-d2 and co"), Ok((" and co", "r2-d2".into())) );
+        assert_eq!(identifier("-not at all"), Err("-not at all") );
     }
 
     #[test]
     fn pair_combinator(){
-        let tag_opener = super::pair(super::match_literal("<"), super::identifier);
+        let tag_opener = pair(match_literal("<"), identifier);
         assert_eq!(tag_opener.parse("<my-first-element/>"),
              Ok(("/>", ((), "my-first-element".to_string())))
         );
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn right_combinator(){
-        let tag_opener = super::right(super::match_literal("<"), super::identifier);
+        let tag_opener = right(match_literal("<"), identifier);
         assert_eq!(tag_opener.parse("<my-first-element/>"), Ok(("/>", "my-first-element".to_string())));
         assert_eq!(tag_opener.parse("oops"), Err("oops"));
         assert_eq!(tag_opener.parse("<!oops"), Err("<!oops"));
@@ -182,7 +182,7 @@ mod tests {
 
     #[test]
     fn one_or_more_combinator(){
-        let parser = super::one_or_more(super::match_literal("ha"));
+        let parser = one_or_more(match_literal("ha"));
         assert_eq!(parser.parse("hahaha"), Ok(("", vec![(), (), ()])));
         assert_eq!(parser.parse("hahax"), Ok(("x", vec![(), ()])));
         assert_eq!(parser.parse("ahah"), Err("ahah"));
@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn zero_or_more_combinator(){
-        let parser = super::zero_or_more(super::match_literal("ha"));
+        let parser = zero_or_more(match_literal("ha"));
         assert_eq!(parser.parse("hahaha"), Ok(("", vec![(), (), ()])));
         assert_eq!(parser.parse("ahah"), Ok(("ahah", vec![])));
         assert_eq!(parser.parse(""), Ok(("", vec![])));
