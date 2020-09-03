@@ -105,7 +105,8 @@ fn repetition<'a, P, A>(parser: P, range: impl std::ops::RangeBounds<usize>) -> 
 where
     P: Parser<'a, A>
 {
-    move |mut input|{
+    move |orig_input|{
+        let mut input = orig_input;
         let mut result = Vec::new();
         let mut i = 0;
 
@@ -118,7 +119,7 @@ where
         if range.contains(&i) {
             Ok((input, result))
         } else {
-            Err(input)
+            Err(orig_input)
         }
     }
 }
@@ -139,7 +140,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{Parser, match_literal, identifier, pair, right, left, zero_or_more, one_or_more};
+    use super::{Parser, match_literal, identifier, pair, right, left, zero_or_more, one_or_more, repetition};
 
     #[test]
     fn it_works() {
@@ -195,5 +196,15 @@ mod tests {
         assert_eq!(parser.parse("hahaha"), Ok(("", vec![(), (), ()])));
         assert_eq!(parser.parse("ahah"), Ok(("ahah", vec![])));
         assert_eq!(parser.parse(""), Ok(("", vec![])));
+    }
+
+    #[test]
+    fn two_to_five(){
+        let parser = repetition(match_literal("a"), 2..6);
+        assert_eq!(parser.parse("a"), Err("a"));
+        assert_eq!(parser.parse("aa"), Ok(("", vec![(), ()])));
+        assert_eq!(parser.parse("aaa"), Ok(("", vec![(), (), ()])));
+        assert_eq!(parser.parse("aaaaa"), Ok(("", vec![(), (), (), (), ()])));
+        assert_eq!(parser.parse("aaaaaaa"), Err("aaaaaaa"));
     }
 }
